@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07060a">
 <meta name="color-scheme" content="dark">
-<title>Gửi em –Lời nhắn đặc biệt</title>
+<title>Gửi em – Lời nhắn đặc biệt</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;500;700&family=Dancing+Script:wght@500;700&display=swap">
 <style>
 :root{--pink:#ff7eb6;--pink2:#ffc2dc;--hot:#ff4f9a;--paper:#fff4f8;--ink:#6b2d4a;--bg:#07060a}
@@ -126,6 +126,13 @@ h1{font-family:"Dancing Script",cursive;font-size:clamp(2.2rem,9vw,3.4rem);color
 .fhint{bottom:calc(92px + env(safe-area-inset-bottom,0px));font-size:.8rem}
 @media(max-width:400px){.openBtn{font-size:.95rem;padding:12px 24px}}
 @media(max-height:560px){.openBtn{bottom:12px}.fhint{bottom:64px}}
+
+/* Nút bật tắt nhạc */
+.musicBtn{position:fixed;top:max(12px,env(safe-area-inset-top,0px));right:12px;z-index:9;width:40px;height:40px;
+  border-radius:50%;border:1px solid rgba(255,170,210,.5);background:rgba(40,16,42,.72);color:#ffd6e8;
+  font-size:1.1rem;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .6s}
+.musicBtn.show{opacity:1;pointer-events:auto}
+.musicBtn.off{opacity:.5;text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -134,11 +141,11 @@ h1{font-family:"Dancing Script",cursive;font-size:clamp(2.2rem,9vw,3.4rem);color
 <script>
 const CFG = {
   bouquetImage: "hoa.png", photos: [], flyPhotos: [], flyCount: 3,
-  bouquetCaption: "Một bó hoa dành cho em", hint: "Nhấn giữ bó hoa để xem tiếp", holdMs: 700, btnDelay: 4000, openLabel: "Mở thư 💌", flySeconds: 16,
+  bouquetCaption: "Một bó hoa dành cho em", hint: "Nhấn giữ bó hoa để xem tiếp", holdMs: 700, btnDelay: 4000, music: "nhac.mp3", openLabel: "Mở thư 💌", flySeconds: 16,
   intro: { title: "Gửi em", sub: "Có một điều anh muốn nói với em…", button: "Chạm vào màn hình bất kỳ để bắt đầu" },
-  messages: ["Yêu em", "Nhớ em", "Cảm ơn vì đã có mặt", "CHo xin 500k", "Em là điều đẹp nhất", "Mãi bên nhau", "Anh thương em", "Em là tất cả", "Luôn mỉm cười nhé", "Của riêng anh", "Hôm nay thật đặc biệt", "Chúc em luôn hạnh phúc", "Iu em nhiều", "Có em là đủ", "Mãi yêu em"],
+  messages: ["Yêu em", "Cho anh xin 500k", "Cho xin 500k", "Em là điều đẹp nhất",   "Luôn mỉm cười nhé",  "Chúc em luôn hạnh phúc", "Iu em nhiều", "Mãi yêu em", "20/10 vui vẻ"],
   date: "20/10", envLabel: "Dành tặng em", envHint: "Chạm phong bì để mở thư", letterPhoto: "", letterTitle: "Gửi cô gái của anh,",
-  letter: ["Anh không giỏi nói những lời hoa mỹ, nên hôm nay anh chỉ muốn nói một điều thật lòng.", "Cảm ơn em vì đã ở đây, vì đã kiên nhẫn với anh, và vì đã làm cho những ngày bình thường trở nên đáng nhớ.", "Dù có xa cách, anh vẫn luôn mong em được vui và bình yên."], sign: "— Iu mái"
+  letter: ["Anh không giỏi nói những lời hoa mỹ, nên hôm nay anh chỉ muốn nói một điều thật lòng.", "Cảm ơn em vì đã ở đây, vì đã kiên nhẫn với anh, và vì đã làm cho những ngày bình thường trở nên đáng nhớ.", "Dù có xa cách, anh vẫn luôn mong em được vui và bình yên."], sign: "— Anh iu của mái"
 };
 const IMG_W = 1500, IMG_H = 1760;
 const FLOWERS = [[736,170,170],[400,280,144],[1050,300,144],[710,480,136],[1180,500,170],[330,640,156],[580,770,160],[910,660,176]];
@@ -422,7 +429,7 @@ function stopFloat() { Warp.stop(); skyPaused = false; }
 async function finish() {
   const s = session; $('hint').classList.add('gone'); $('cap').classList.remove('show'); $('bq').classList.remove('holding'); $('bq').classList.add('leaving');
   await sleep(650); if (!alive(s)) return;
-  show('float'); skyPaused = true; const bay = await flyP, fl = (await Promise.all(flowerP)).filter(Boolean); await Warp.start([...bay, ...fl]);
+  show('float'); skyPaused = true; const bay = (await flyP).filter(Boolean); await Warp.start(bay); // quả cầu chỉ dùng ảnh bay, không lấy ảnh bông hoa
   if (!alive(s)) { stopFloat(); return; }
   const h = $('fhint'); h.textContent = 'Vuốt để xoay · Chụm để phóng to · Chạm đúp để đặt lại'; h.style.opacity = .85; setTimeout(() => { h.style.opacity = 0; }, 6500);
   await sleep(CFG.btnDelay); if (!alive(s)) return; $('openBtn').classList.add('show');
@@ -433,7 +440,7 @@ let opened = false, userScroll = false;
 async function openLetter() {
   if (opened) return; opened = true; const s = session;
   $('openBtn').classList.remove('show'); $('fhint').style.opacity = 0;
-  const u = CFG.letterPhoto ? await shrink(CFG.letterPhoto, 300) : await flowerP[0];
+  const u = await firstOf(CFG.letterPhoto ? [CFG.letterPhoto] : ['thu.jpg', 'thu.jpeg', 'thu.png', 'thu.webp'], 300); // ảnh trong thư: file tên thu
   if (!alive(s)) return;
   if (u) { $('lPhoto').style.backgroundImage = `url('${u}')`; $('lPhoto').classList.add('has'); }
   stopFloat();
@@ -457,7 +464,7 @@ function initNightSky() {
   document.addEventListener('visibilitychange', () => { cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(draw); });
 }
 
-function startShow() { if (started || !$('intro').classList.contains('on') || Date.now() < introReadyAt) return; started = true; session++; finishing = false; $('cap').classList.remove('show'); $('cap').textContent = ''; buildBouquet(); show('bouquet'); startAutoBloom(session); }
+function startShow() { if (started || !$('intro').classList.contains('on') || Date.now() < introReadyAt) return; started = true; BGM.start(CFG.music); session++; finishing = false; $('cap').classList.remove('show'); $('cap').textContent = ''; buildBouquet(); show('bouquet'); startAutoBloom(session); }
 function init() {
   initNightSky(); $('bqImg').src = CFG.bouquetImage; $('introTitle').textContent = CFG.intro.title; $('introSub').textContent = CFG.intro.sub; $('tapHint').textContent = CFG.intro.button; $('openBtn').textContent = CFG.openLabel;
   setupHoldBouquet(); Warp.bind();
@@ -467,6 +474,93 @@ function init() {
   $('replay').onclick = () => { session++; timers.forEach(clearInterval); timers = []; stopFloat(); finishing = false; started = false; opened = false; introReadyAt = Date.now() + 700; $('letter').classList.remove('on'); $('openBtn').classList.remove('show'); $('cap').classList.remove('show'); show('intro'); };
 }
 init();
+
+// Nhạc nền: phát nhac.mp3 nếu có, không thì tự tạo giai điệu nhẹ bằng Web Audio
+const BGM = (() => {
+  const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99];
+  const MEL = [4,5,6,5, 4,3,2,-1, 2,3,4,3, 2,1,0,-1, 4,5,6,7, 6,5,4,-1, 3,4,5,-1, 4,3,2,1];
+  const CH = [0, 0, 3, 3, 4, 4, 0, 0];
+  const STEP = 0.42, LEAD = 0.6;
+  let on = false, muted = false, audio = null, ctx = null, out = null, timer = null, nextT = 0, idx = 0;
+
+  function tone(f, t, d, v, type = 'sine') {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(v, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(out);
+    o.start(t); o.stop(t + d + 0.05);
+  }
+
+  function schedule() {
+    while (nextT < ctx.currentTime + LEAD) {
+      const r = CH[Math.floor(idx / 4) % CH.length];
+      if (idx % 4 === 0) {
+        [r, r + 2, r + 4].forEach(k => tone(SCALE[k], nextT, STEP * 4, 0.04));
+        tone(SCALE[r] / 2, nextT, STEP * 4, 0.08, 'triangle');
+      }
+      const m = MEL[idx % MEL.length];
+      if (m >= 0) tone(SCALE[m], nextT, STEP * 1.8, 0.12);
+      nextT += STEP; idx++;
+    }
+  }
+
+  function startGen() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctx = new AC();
+      out = ctx.createGain();
+      out.gain.value = 0;
+      out.connect(ctx.destination);
+    }
+    ctx.resume();
+    nextT = ctx.currentTime + 0.1; idx = 0;
+    out.gain.cancelScheduledValues(ctx.currentTime);
+    out.gain.linearRampToValueAtTime(muted ? 0 : 0.22, ctx.currentTime + 2);
+    clearInterval(timer);
+    schedule();
+    timer = setInterval(schedule, 120);
+  }
+
+  function start(file) {
+    if (on) return;
+    on = true;
+    $('musicBtn').classList.add('show');
+    if (file) {
+      const a = new Audio(file);
+      a.loop = true; a.volume = 0; a.preload = 'auto';
+      a.play().then(() => {
+        audio = a;
+        a.muted = muted;
+        let v = 0;
+        const fade = setInterval(() => { v = Math.min(0.35, v + 0.02); a.volume = v; if (v >= 0.35) clearInterval(fade); }, 100);
+      }).catch(() => startGen());
+      a.addEventListener('error', () => { if (!audio) startGen(); });
+      return;
+    }
+    startGen();
+  }
+
+  function toggle() {
+    muted = !muted;
+    if (audio) audio.muted = muted;
+    if (ctx && out) out.gain.linearRampToValueAtTime(muted ? 0 : 0.22, ctx.currentTime + 0.4);
+    $('musicBtn').classList.toggle('off', muted);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!on) return;
+    if (document.hidden) { if (audio) audio.pause(); if (ctx) ctx.suspend(); }
+    else { if (audio && !muted) audio.play().catch(() => {}); if (ctx) ctx.resume(); }
+  });
+
+  return { start, toggle };
+})();
+
+document.addEventListener('DOMContentLoaded', () => $('musicBtn').addEventListener('click', BGM.toggle));
 </script>
+<button class="musicBtn" id="musicBtn" type="button" aria-label="Bật tắt nhạc">♪</button>
 </body>
 </html>
